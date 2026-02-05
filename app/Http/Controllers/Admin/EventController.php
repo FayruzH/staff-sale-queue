@@ -89,7 +89,7 @@ class EventController extends Controller
             $cursor = $start->copy();
 
             while (true) {
-                // skip break window
+
                 if ($breakStart && $breakEnd && $cursor->gte($breakStart) && $cursor->lt($breakEnd)) {
                     $cursor = $breakEnd->copy();
                 }
@@ -129,17 +129,16 @@ class EventController extends Controller
     {
         DB::transaction(function () use ($event) {
 
-            // 1) delete registrations for this event
+            // delete registrations
             Registration::where('event_id', $event->id)->delete();
 
-            // 2) reset batches
+            // reset batches
             Batch::where('event_id', $event->id)->update([
                 'status' => 'upcoming',
                 'started_at' => null,
             ]);
 
-            // optional: set event back to draft / or keep active
-            // $event->update(['status' => 'draft']); // uncomment kalau mau balik draft
+          
         });
 
         return back()->with('success', 'Demo reset successful.');

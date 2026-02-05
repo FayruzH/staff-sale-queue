@@ -158,12 +158,11 @@ function applyBoxBorder(el,color){
 
 /**
  * Countdown to next batch start:
- * MUST use server time to avoid timezone / drift problems.
  */
 function secondsUntilNextStart(){
   if(!next || !eventMeta || !serverNowMs) return null;
 
-  // ISO string prevents ambiguous parsing
+
   // event_date: YYYY-MM-DD, start_time: HH:mm
   const startIso = `${eventMeta.event_date}T${next.start_time}:00`;
   const startMs = new Date(startIso).getTime();
@@ -206,9 +205,9 @@ function renderStaticBits(){
       els.idleInfo.textContent = `Waiting — Batch ${next.batch_number} akan dimulai`;
       els.batchTime.textContent = `Next: ${next.start_time} - ${next.end_time}`;
 
-      // show next-start countdown (guarded)
+      // show next-start countdown
       const sec = secondsUntilNextStart();
-      if(sec !== null && sec <= 6 * 3600){ // max 6 jam biar nggak absurd
+      if(sec !== null && sec <= 6 * 3600){
         els.nextCountdown.style.display='block';
       }else{
         els.nextCountdown.style.display='none';
@@ -286,10 +285,9 @@ async function syncFromServer(){
     phase        = json.phase || null;
     breakWindow  = json.break_window || null;
 
-    // === use server_now snapshot (source of truth) ===
+
     serverNowMs = json.server_now ? new Date(json.server_now).getTime() : Date.now();
 
-    // === smoothing for running countdown ===
     const newServerNowMs = serverNowMs;
     const nowPerf = performance.now();
 

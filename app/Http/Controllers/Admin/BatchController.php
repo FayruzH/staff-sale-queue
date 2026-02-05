@@ -30,7 +30,6 @@ class BatchController extends Controller
         return back()->with('success', 'Batch started!');
     }
 
-    // optional buat demo manual complete
     public function complete(Batch $batch)
     {
         $batch->update(['status' => 'completed']);

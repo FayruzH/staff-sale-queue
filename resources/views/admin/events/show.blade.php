@@ -137,7 +137,7 @@
           </button>
         </form>
 
-         {{-- ✅ Auto Mode Toggle --}}
+         {{-- Auto Mode Toggle --}}
         <form method="POST" action="{{ route('admin.events.autoMode', $event) }}" class="d-inline">
             @csrf
             <button class="btn btn-outline-secondary fw-semibold" type="submit">
@@ -146,7 +146,7 @@
             </button>
         </form>
 
-        {{-- ✅ Delete  --}}
+        {{-- Delete  --}}
             <button type="button" class="btn btn-outline-danger fw-semibold "
                     data-bs-toggle="modal" data-bs-target="#deleteModal"
                     data-action="{{ route('admin.events.destroy', $event) }}"
@@ -236,7 +236,6 @@
                     </span>
                   </td>
 
-                  {{-- ✅ UPDATED COLOR CELL (lebih jelas + siap dipakai ke ticket) --}}
                   <td>
                     <div class="d-flex align-items-center gap-2">
                       <span class="d-inline-block rounded-2 border"

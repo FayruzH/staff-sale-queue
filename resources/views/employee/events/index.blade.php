@@ -64,7 +64,7 @@
     </div>
   @endif
 
-  {{-- Modal Ticket Info (Bootstrap) --}}
+  {{-- Modal Ticket Info --}}
   @if($modalMsg)
     <div class="modal fade" id="ticketModal" tabindex="-1" aria-hidden="true">
       <div class="modal-dialog modal-dialog-centered">
