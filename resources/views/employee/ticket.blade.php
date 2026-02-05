@@ -5,7 +5,7 @@
 @section('content')
 
   @php
-    // Payload QR (simple aja): event_id|queue_number (JANGAN UBAH FLOW)
+    // Payload QR : event_id|queue_number
     $qrPayload = $registration->event_id . '|' . $registration->queue_number;
 
     $qrSvg = \SimpleSoftwareIO\QrCode\Facades\QrCode::format('svg')
@@ -18,7 +18,7 @@
       ->margin(1)
       ->generate($qrPayload);
 
-    // ✅ warna batch (fallback aman)
+    //  warna batch
     $batchColor = $registration->batch->color_code ?? '#0d6efd';
   @endphp
 
@@ -62,7 +62,7 @@
 
             <div class="col-4 text-muted">Batch</div>
             <div class="col-8 fw-semibold">
-              {{-- ✅ badge warna batch (minimal change) --}}
+              {{-- badge warna batch --}}
               <span class="badge rounded-pill"
                     style="background: {{ $batchColor }}; color: #fff;">
                 Batch {{ $registration->batch->batch_number }}
@@ -102,7 +102,7 @@
       </div>
     </div>
 
-    {{-- RIGHT: QR --}}
+    {{-- QR --}}
     <div class="col-12 col-lg-5">
       <div class="card border-0 shadow-sm"
            style="border-left: 6px solid {{ $batchColor }};">
@@ -131,7 +131,7 @@
           </div>
 
           <div class="d-flex gap-3 align-items-center flex-wrap mt-3 p-3 bg-white border rounded-3">
-            {{-- ✅ QR frame warna batch --}}
+            {{-- QR frame warna batch --}}
             <div class="bg-light rounded-3 d-flex align-items-center justify-content-center"
                  style="width:220px;height:220px;border: 3px dashed {{ $batchColor }};">
               {!! $qrSvg !!}
@@ -172,7 +172,7 @@
     </div>
   </div>
 
-  {{-- Bootstrap Modal: Focus QR --}}
+  {{-- Focus QR --}}
   <div class="modal fade" id="qrModal" tabindex="-1" aria-hidden="true">
     <div class="modal-dialog modal-dialog-centered">
       <div class="modal-content border-0 shadow">
@@ -195,7 +195,7 @@
             <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
           </div>
 
-          {{-- ✅ modal frame warna batch --}}
+          {{-- modal frame warna batch --}}
           <div class="mt-3 p-3 bg-light rounded-3 d-flex justify-content-center"
                style="border: 3px dashed {{ $batchColor }};">
             {!! $qrSvgBig !!}
@@ -220,7 +220,7 @@
     };
 
     function computeTicketStatus(nowServingText, yourBatchText){
-        // nowServingText: "Batch 2" / "-" ; yourBatchText: "Batch 2" / "-"
+
         const ns = parseInt((nowServingText || '').replace(/\D/g,''), 10);
         const yb = parseInt((yourBatchText || '').replace(/\D/g,''), 10);
 
@@ -254,7 +254,7 @@
         els.status.textContent = computeTicketStatus(els.now.textContent, els.your.textContent);
 
         }catch(e){
-        // silent
+
         }
     }
 

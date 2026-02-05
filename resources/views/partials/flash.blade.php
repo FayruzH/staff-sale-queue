@@ -1,5 +1,4 @@
-{{-- Fallback only if JS disabled --}}
-<noscript>
+{{-- Flash Messages Partial --}}
   @if (session('success'))
     <div class="alert alert-success d-flex align-items-center gap-2" role="alert">
       <i class="bi bi-check-circle-fill"></i>

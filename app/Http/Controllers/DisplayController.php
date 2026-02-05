@@ -21,10 +21,10 @@ class DisplayController extends Controller
         return response()->json($payload);
     }
 
-    // ✅ Ticket Live: reuse display payload biar hasilnya sama persis
+    //  ===== TICKET LIVE VIEW ======
     public function ticketLive(Registration $registration)
     {
-        // pastikan relationship ada: registration->event & registration->batch
+
         $registration->load(['event.batches', 'batch']);
 
         $event = $registration->event;
@@ -38,6 +38,7 @@ class DisplayController extends Controller
         $yourStatus = 'unknown';
         $etaText = '—';
 
+        // hitung your status & eta
         if ($yourBatch) {
             $start = Carbon::parse($event->event_date . ' ' . $yourBatch->start_time, $tz);
             $end   = Carbon::parse($event->event_date . ' ' . $yourBatch->end_time, $tz);
@@ -56,7 +57,7 @@ class DisplayController extends Controller
             }
         }
 
-        // tambahan field untuk ticket
+        // YOUR BATCH payload
         $payload['your_batch'] = $yourBatch ? [
             'id' => $yourBatch->id,
             'batch_number' => $yourBatch->batch_number,

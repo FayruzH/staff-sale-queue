@@ -13,9 +13,8 @@ class AttendanceController extends Controller
     {
         $q = trim((string) $request->query('q'));
         $batchId = $request->query('batch_id');
-        $status = $request->query('status'); // ✅ NEW: pending / checked
+        $status = $request->query('status'); // pending / checked
 
-        // ✅ base query (buat paginate + summary)
         $base = Registration::query()
             ->where('event_id', $event->id)
             ->when($q !== '', function ($query) use ($q) {
@@ -35,12 +34,12 @@ class AttendanceController extends Controller
                 $query->whereNotNull('checked_in_at');
             });
 
-        // ✅ summary pakai query (bukan paginator)
+        //  summary stats
         $total     = (clone $base)->count();
         $checkedIn = (clone $base)->whereNotNull('checked_in_at')->count();
         $remaining = $total - $checkedIn;
 
-        // ✅ paginate (baru with relation)
+        // pagination
         $registrations = (clone $base)
             ->with(['batch'])
             ->orderBy('batch_id')
@@ -57,7 +56,7 @@ class AttendanceController extends Controller
             'batches',
             'q',
             'batchId',
-            'status',      // ✅ pass to blade
+            'status',      // filter
             'total',
             'checkedIn',
             'remaining'
@@ -88,7 +87,7 @@ class AttendanceController extends Controller
             abort(404);
         }
 
-        // prevent undo kalau batch / event sudah lewat
+        // Cek apakah event atau batch sudah lewat
         $eventEnd = \Carbon\Carbon::parse($event->event_date.' '.$event->end_time);
         $batchEnd = \Carbon\Carbon::parse($event->event_date.' '.$registration->batch->end_time);
 
@@ -106,7 +105,7 @@ class AttendanceController extends Controller
 
 
 
-    // SCAN (QR payload: event_id|queue_number) + backward compatible queue_number aja
+    // Scan check-in via QR code
     public function scanCheckIn(Request $request, Event $event)
     {
         $data = $request->validate([
@@ -115,13 +114,13 @@ class AttendanceController extends Controller
 
         $raw = trim($data['queue_number']);
 
-        // ✅ STRICT: wajib format "event_id|queue"
+        //  validasi format dasar
         if (!str_contains($raw, '|')) {
             return back()
                 ->withInput()
                 ->with('error', 'Format tidak valid.');
         }
-        // Parse QR
+        // parse QR
         [$eventFromQr, $queue] = array_pad(explode('|', $raw, 2), 2, null);
 
         $eventFromQr = (int) trim((string) $eventFromQr);
@@ -133,14 +132,14 @@ class AttendanceController extends Controller
                 ->with('error', 'QR tidak valid. Silakan scan ulang QR dari halaman ticket.');
         }
 
-        // ✅ QR event lain
+        // cek QR untuk event yang benar
         if ($eventFromQr !== (int) $event->id) {
             return back()
                 ->withInput()
                 ->with('error', "QR ini untuk event lain (QR event: {$eventFromQr}, halaman event: {$event->id}).");
         }
 
-        // ✅ cari ticket by event + queue
+        // cari ticket by event + queue
         $reg = Registration::where('event_id', $event->id)
             ->where('queue_number', $queue)
             ->first();
@@ -151,14 +150,14 @@ class AttendanceController extends Controller
                 ->with('error', "Ticket tidak ditemukan untuk event ini. Queue: {$queue}");
         }
 
-        // ✅ anti double check-in
+        //  anti double check-in
         if (!is_null($reg->checked_in_at)) {
             return back()
                 ->with('warning', "ALREADY: {$reg->queue_number} - {$reg->employee_name} ({$reg->employee_identifier})")
                 ->with('last_scanned_id', $reg->id);
         }
 
-        // ✅ do check-in
+        // lakukan check-in
         $reg->update([
             'checked_in_at' => now(),
             'checked_in_by' => 'admin', // atau auth()->id() kalau pakai auth

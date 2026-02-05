@@ -83,7 +83,7 @@
 
           $slotBadgeClass = ($b->remaining_slots <= 0) ? 'text-bg-danger' : 'text-bg-success';
 
-          // ✅ color code batch (fallback aman)
+          //  color code batch
           $c = $b->color_code ?? '#CBD5E1';
         @endphp
 
@@ -92,7 +92,7 @@
           <div class="d-flex justify-content-between align-items-start gap-3">
             <div class="flex-grow-1">
               <div class="d-flex flex-wrap align-items-center gap-2">
-                {{-- ✅ dot warna + title --}}
+                {{-- dot warna + title --}}
                 <span class="batch-color-dot" style="background: {{ $c }};"></span>
 
                 <div class="fw-semibold">
@@ -140,7 +140,7 @@
     </div>
   </div>
 
-  {{-- Already Registered Modal (Bootstrap) --}}
+  {{-- Already Registered Modal--}}
   @if(session('already_registered'))
     <div class="modal fade" id="alreadyModal" tabindex="-1" aria-hidden="true">
       <div class="modal-dialog modal-dialog-centered">

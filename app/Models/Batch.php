@@ -35,13 +35,13 @@ class Batch extends Model
         return $this->hasMany(Registration::class);
     }
 
-    // (opsional) helper: hitung jumlah yang sudah daftar
+    // helper: hitung jumlah yang sudah daftar
     public function getRegisteredCountAttribute()
     {
         return $this->registrations()->count();
     }
 
-    // (opsional) helper: sisa slot
+    // helper: sisa slot
     public function getRemainingSlotsAttribute()
     {
         return max(0, $this->capacity - $this->registered_count);

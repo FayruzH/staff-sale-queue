@@ -11,7 +11,7 @@
     {{-- Right slot + mobile toggler --}}
     <div class="d-flex align-items-center gap-2">
 
-      {{-- slot kanan (optional) --}}
+      {{-- slot kanan--}}
       @hasSection('nav_right')
         <div class="d-none d-md-flex align-items-center gap-2">
           @yield('nav_right')
@@ -47,7 +47,7 @@
         </a>
       @endif
 
-      {{-- Jika kamu punya route ticket login --}}
+      {{-- Ticket menu --}}
       @if(\Illuminate\Support\Facades\Route::has('employee.ticket.login'))
         <a class="list-group-item list-group-item-action d-flex align-items-center gap-2"
            href="{{ route('employee.ticket.login') }}">

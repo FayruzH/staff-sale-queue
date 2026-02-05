@@ -1,4 +1,4 @@
-{{-- Toast Container: TOP CENTER --}}
+{{-- Toast notification component --}}
 <div class="toast-container position-fixed top-0 start-50 translate-middle-x p-3"
      style="z-index: 1200; width: min(520px, calc(100vw - 24px));">
   <div id="appToast"
@@ -20,7 +20,7 @@
   /* Biar toast gak nabrak navbar sticky-top */
   .toast-container { margin-top: 64px; }
 
-  /* Mobile: kasih napas */
+  /* Mobile */
   @media (max-width: 576px){
     .toast-container { margin-top: 56px; }
   }

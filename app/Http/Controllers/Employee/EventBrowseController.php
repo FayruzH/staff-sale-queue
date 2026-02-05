@@ -11,9 +11,7 @@ use Illuminate\Support\Facades\DB;
 
 class EventBrowseController extends Controller
 {
-    /* ======================
-     * EVENT LIST
-     * ====================== */
+    // Event listing and details
     public function index()
     {
         $events = Event::where('status', 'active')
@@ -114,16 +112,14 @@ class EventBrowseController extends Controller
             ->with('success', 'Register sukses. Ini tiket kamu.');
     }
 
-    /* ======================
-     * TICKET
-     * ====================== */
+    // Ticket display
    public function ticket(Registration $registration)
     {
         $registration->load(['event', 'batch']);
 
         // Ticket hangus kalau sudah check-in / batch lewat / event end
         if ($registration->isExpired()) {
-            // bedain messaging biar vibes-nya jelas
+
             if ($registration->checked_in_at) {
                 return redirect()
                     ->route('employee.events.index')
@@ -143,9 +139,7 @@ class EventBrowseController extends Controller
 
 
 
-    /* ======================
-     * TICKET LOGIN
-     * ====================== */
+    // Ticket login form and submit
     public function ticketLoginForm(Request $request)
     {
         $eventId = $request->query('event_id');

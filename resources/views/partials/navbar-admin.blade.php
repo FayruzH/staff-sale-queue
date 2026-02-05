@@ -10,7 +10,7 @@
     {{-- Right: Desktop actions + Mobile toggler --}}
     <div class="d-flex align-items-center gap-2">
 
-      {{-- Slot kanan buat page tertentu (optional) --}}
+      {{-- Slot kanan --}}
       @hasSection('nav_right')
         <div class="d-none d-md-flex align-items-center gap-2">
           @yield('nav_right')
@@ -47,7 +47,7 @@
         </a>
       @endif
 
-      {{-- Kalau kamu punya route create --}}
+      {{-- Kalau punya route create --}}
       @if(\Illuminate\Support\Facades\Route::has('admin.events.create'))
         <a class="list-group-item list-group-item-action d-flex align-items-center gap-2"
            href="{{ route('admin.events.create') }}">
@@ -55,7 +55,7 @@
         </a>
       @endif
 
-      {{-- Slot tambahan menu khusus admin --}}
+      {{-- Slot tambahan menu buat admin --}}
       @hasSection('nav_menu')
         <div class="mt-2">
           @yield('nav_menu')
@@ -66,7 +66,7 @@
         Tip: “Display” biasanya ada tombol di Event Detail (biar open tab baru).
       </div>
 
-      {{-- Logout: jangan dipaksain kalau route kamu beda --}}
+      {{-- Logout: jangan dipaksain kalau route beda --}}
       @if(\Illuminate\Support\Facades\Route::has('logout'))
         <form class="mt-3" method="POST" action="{{ route('logout') }}">
           @csrf
