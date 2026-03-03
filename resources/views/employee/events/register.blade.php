@@ -27,6 +27,9 @@
           <div><span class="fw-semibold text-dark">Batch:</span> {{ $batch->batch_number }} ({{ $batch->start_time }} - {{ $batch->end_time }})</div>
         </div>
         <div class="col-12 col-md-6">
+          <div><span class="fw-semibold text-dark">Location:</span> {{ $event->location ?: '-' }}</div>
+        </div>
+        <div class="col-12 col-md-6">
           <div>
             <span class="fw-semibold text-dark">Remaining slot:</span>
             <span class="badge rounded-pill {{ $remainingSlots <= 0 ? 'text-bg-danger' : 'text-bg-success' }}">
@@ -109,6 +112,7 @@
 
           <div class="small text-muted">
             <div class="mb-1"><span class="fw-semibold text-dark">Event:</span> {{ $event->name }}</div>
+            <div class="mb-1"><span class="fw-semibold text-dark">Location:</span> {{ $event->location ?: '-' }}</div>
             <div class="mb-1"><span class="fw-semibold text-dark">Batch:</span> {{ $batch->batch_number }} ({{ $batch->start_time }} - {{ $batch->end_time }})</div>
             <div class="mb-1"><span class="fw-semibold text-dark">Employee ID:</span> <span id="cEmpId">-</span></div>
             <div><span class="fw-semibold text-dark">Nama:</span> <span id="cEmpName">-</span></div>

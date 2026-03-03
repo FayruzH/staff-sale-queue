@@ -65,7 +65,7 @@ Route::get('/events/{event}/batches/{batch}', [EventBrowseController::class, 're
     ->name('employee.events.registerForm');
 Route::post('/events/{event}/batches/{batch}/register', [EventBrowseController::class, 'registerSubmit'])
     ->name('employee.events.registerSubmit');
-    
+
 // Ticket login routes
 Route::get('/ticket/login', [EventBrowseController::class, 'ticketLoginForm'])->name('employee.ticket.loginForm');
 Route::post('/ticket/login', [EventBrowseController::class, 'ticketLoginSubmit'])->name('employee.ticket.loginSubmit');

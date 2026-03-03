@@ -51,30 +51,13 @@ class Batch extends Model
     {
         return [
             '#EF4444', // red
-            '#F97316', // orange
-            '#F59E0B', // amber
-            '#EAB308', // yellow
-            '#84CC16', // lime
+            '#F59E0B', // yellow
             '#22C55E', // green
-            '#16A34A', // green dark
-            '#14B8A6', // teal
-            '#06B6D4', // cyan
-            '#0EA5E9', // sky
             '#3B82F6', // blue
-            '#2563EB', // blue dark
-            '#6366F1', // indigo
-            '#4F46E5', // indigo dark
-            '#8B5CF6', // violet
             '#A855F7', // purple
-            '#D946EF', // fuchsia
+            '#F97316', // orange
+            '#06B6D4', // cyan
             '#EC4899', // pink
-            '#F43F5E', // rose
-            '#BE123C', // rose dark
-            '#7C2D12', // brown
-            '#92400E', // brown amber
-            '#374151', // slate
-            '#111827', // near-black
-            '#0F766E', // teal dark
         ];
     }
 

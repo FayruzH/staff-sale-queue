@@ -12,13 +12,45 @@ use Illuminate\Support\Facades\DB;
 class EventBrowseController extends Controller
 {
     // Event listing and details
-    public function index()
+    public function index(Request $request)
     {
-        $events = Event::where('status', 'active')
-            ->orderByDesc('id')
-            ->get();
+        $sort = $request->string('sort')->toString() ?: 'nearest';
 
-        return view('employee.events.index', compact('events'));
+        $baseQuery = Event::query()->where('status', 'active');
+        $totalEvents = (clone $baseQuery)->count();
+        $eventsQuery = clone $baseQuery;
+
+        if ($request->filled('q')) {
+            $q = trim((string) $request->input('q'));
+
+            $eventsQuery->where(function ($query) use ($q) {
+                $query->where('name', 'like', "%{$q}%")
+                    ->orWhere('location', 'like', "%{$q}%")
+                    ->orWhere('code', 'like', "%{$q}%")
+                    ->orWhereDate('event_date', $q)
+                    ->orWhere('event_date', 'like', "%{$q}%");
+            });
+        }
+
+        switch ($sort) {
+            case 'farthest':
+                $eventsQuery->orderBy('event_date', 'desc')->orderBy('id', 'desc');
+                break;
+            case 'name_az':
+                $eventsQuery->orderBy('name', 'asc')->orderBy('event_date', 'asc');
+                break;
+            case 'name_za':
+                $eventsQuery->orderBy('name', 'desc')->orderBy('event_date', 'asc');
+                break;
+            case 'nearest':
+            default:
+                $eventsQuery->orderBy('event_date', 'asc')->orderBy('id', 'asc');
+                break;
+        }
+
+        $events = $eventsQuery->get();
+
+        return view('employee.events.index', compact('events', 'totalEvents'));
     }
 
     public function show(Event $event)
@@ -167,6 +199,24 @@ class EventBrowseController extends Controller
                     'Kamu belum terdaftar di event ini. Silakan pilih batch dan register terlebih dahulu.'
                 )
                 ->with('ticket_not_found_event_id', $data['event_id']);
+        }
+
+        $registration->loadMissing(['event', 'batch']);
+
+        if ($registration->isExpired()) {
+            if ($registration->checked_in_at) {
+                return redirect()
+                    ->route('employee.ticket.loginForm', ['event_id' => $data['event_id']])
+                    ->withInput($request->only(['employee_id', 'employee_name']))
+                    ->with('ticket_checked_in', true)
+                    ->with('ticket_checked_in_message', 'Ticket kamu sudah digunakan (check-in). Jika ada kesalahan, hubungi admin.');
+            }
+
+            return redirect()
+                ->route('employee.ticket.loginForm', ['event_id' => $data['event_id']])
+                ->withInput($request->only(['employee_id', 'employee_name']))
+                ->with('ticket_expired', true)
+                ->with('ticket_expired_message', 'Ticket kamu sudah hangus karena batch/event sudah lewat.');
         }
 
         return redirect()

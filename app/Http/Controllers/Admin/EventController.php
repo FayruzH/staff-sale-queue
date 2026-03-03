@@ -8,16 +8,141 @@ use App\Models\Batch;
 use App\Models\Registration;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 use Carbon\Carbon;
+use Illuminate\Http\UploadedFile;
 
 
 class EventController extends Controller
 {
-    public function index()
+    private function thumbnailRules(): array
     {
-        $events = Event::orderByDesc('id')->get();
-        return view('admin.events.index', compact('events'));
+        return ['nullable', 'image', 'mimes:jpeg,png,jpg,webp', 'max:2048'];
+    }
+
+    private function storeNormalizedThumbnail(UploadedFile $file): string
+    {
+        $raw = @file_get_contents($file->getRealPath());
+        $src = $raw ? @imagecreatefromstring($raw) : false;
+
+        // Fallback: keep upload flow working if server image library is unavailable.
+        if (!$src) {
+            return $file->store('events', 'public');
+        }
+
+        $srcW = imagesx($src);
+        $srcH = imagesy($src);
+
+        $targetW = 1600;
+        $targetH = 1000; // 16:10 template
+        $targetRatio = $targetW / $targetH;
+        $srcRatio = $srcW / max(1, $srcH);
+
+        if ($srcRatio > $targetRatio) {
+            $cropH = $srcH;
+            $cropW = (int) round($cropH * $targetRatio);
+            $srcX = (int) floor(($srcW - $cropW) / 2);
+            $srcY = 0;
+        } else {
+            $cropW = $srcW;
+            $cropH = (int) round($cropW / $targetRatio);
+            $srcX = 0;
+            $srcY = (int) floor(($srcH - $cropH) / 2);
+        }
+
+        $canvas = imagecreatetruecolor($targetW, $targetH);
+        $bg = imagecolorallocate($canvas, 255, 255, 255);
+        imagefill($canvas, 0, 0, $bg);
+
+        imagecopyresampled($canvas, $src, 0, 0, $srcX, $srcY, $targetW, $targetH, $cropW, $cropH);
+
+        ob_start();
+        imagejpeg($canvas, null, 88);
+        $binary = ob_get_clean();
+
+        imagedestroy($src);
+        imagedestroy($canvas);
+
+        $path = 'events/' . Str::uuid() . '.jpg';
+        Storage::disk('public')->put($path, $binary);
+
+        return $path;
+    }
+
+    private function sanitizeDescription(?string $description): ?string
+    {
+        if ($description === null) {
+            return null;
+        }
+
+        // Allow only basic formatting tags from rich text input.
+        $clean = trim(strip_tags($description, '<p><br><strong><em><ul><ol><li><b><i><u>'));
+
+        return $clean !== '' ? $clean : null;
+    }
+
+    private function generateEventCode(): string
+    {
+        $datePart = Carbon::now()->format('Ymd');
+
+        do {
+            $uniqueNumber = random_int(1000, 9999);
+            $code = "EVT-{$datePart}-{$uniqueNumber}";
+        } while (Event::where('code', $code)->exists());
+
+        return $code;
+    }
+
+    public function index(Request $request)
+    {
+        $today = Carbon::today()->toDateString();
+        $sort = $request->string('sort')->toString() ?: 'nearest';
+
+        $totalEvents = Event::count();
+        $eventsQuery = Event::query();
+
+        if ($request->filled('q')) {
+            $q = trim((string) $request->input('q'));
+            $eventsQuery->where(function ($query) use ($q) {
+                $query->where('name', 'like', "%{$q}%")
+                    ->orWhere('location', 'like', "%{$q}%")
+                    ->orWhere('code', 'like', "%{$q}%")
+                    ->orWhereDate('event_date', $q);
+            });
+        }
+
+        if ($request->filled('status')) {
+            $eventsQuery->where('status', $request->input('status'));
+        }
+
+        switch ($sort) {
+            case 'name_az':
+                $eventsQuery->orderBy('name', 'asc')->orderByDesc('id');
+                break;
+            case 'name_za':
+                $eventsQuery->orderBy('name', 'desc')->orderByDesc('id');
+                break;
+            case 'farthest':
+                // Kebalikan nearest: event masa depan terjauh dulu, lalu event lampau terlama.
+                $eventsQuery
+                    ->orderByRaw('CASE WHEN event_date >= ? THEN 0 ELSE 1 END', [$today])
+                    ->orderByRaw('CASE WHEN event_date >= ? THEN event_date END DESC', [$today])
+                    ->orderByRaw('CASE WHEN event_date < ? THEN event_date END ASC', [$today])
+                    ->orderByDesc('id');
+                break;
+            default:
+                // Default: event terdekat (upcoming terdekat dulu, lalu event lampau terbaru).
+                $eventsQuery
+                    ->orderByRaw('CASE WHEN event_date >= ? THEN 0 ELSE 1 END', [$today])
+                    ->orderByRaw('CASE WHEN event_date >= ? THEN event_date END ASC', [$today])
+                    ->orderByRaw('CASE WHEN event_date < ? THEN event_date END DESC', [$today])
+                    ->orderByDesc('id');
+                break;
+        }
+
+        $events = $eventsQuery->get();
+        return view('admin.events.index', compact('events', 'totalEvents'));
     }
 
     public function create()
@@ -29,7 +154,9 @@ class EventController extends Controller
     {
         $data = $request->validate([
             'name' => ['required','string','max:255'],
+            'location' => ['nullable','string','max:255'],
             'description' => ['nullable','string'],
+            'thumbnail' => $this->thumbnailRules(),
             'event_date' => ['required','date'],
             'start_time' => ['required'],
             'end_time' => ['required'],
@@ -40,9 +167,18 @@ class EventController extends Controller
             'capacity_per_batch' => ['required','integer','min:1','max:500'],
         ]);
 
-        // code "autonumber-ish" for MVP
-        $data['code'] = 'EVT-' . Carbon::now()->format('Ymd-His') . '-' . Str::upper(Str::random(4));
+        $data['description'] = $this->sanitizeDescription($data['description'] ?? null);
+        $data['location'] = ($loc = trim((string) ($data['location'] ?? ''))) !== '' ? $loc : null;
+        $data['code'] = $this->generateEventCode();
         $data['status'] = 'draft';
+
+        $thumbnailPath = null;
+
+        if ($request->file('thumbnail')) {
+            $thumbnailPath = $this->storeNormalizedThumbnail($request->file('thumbnail'));
+        }
+
+        $data['thumbnail'] = $thumbnailPath;
 
         $event = Event::create($data);
 
@@ -138,7 +274,7 @@ class EventController extends Controller
                 'started_at' => null,
             ]);
 
-          
+
         });
 
         return back()->with('success', 'Demo reset successful.');
@@ -153,7 +289,9 @@ class EventController extends Controller
     {
         $data = $request->validate([
             'name' => 'required|string|max:255',
-            'code' => 'required|string|max:255',
+            'location' => 'nullable|string|max:255',
+            "description" => 'nullable|string',
+            'thumbnail' => $this->thumbnailRules(),
             'event_date' => 'required|date',
             'start_time' => 'required',
             'end_time' => 'required',
@@ -167,6 +305,19 @@ class EventController extends Controller
             'break_start' => 'nullable',
             'break_end' => 'nullable',
         ]);
+
+        $data['description'] = $this->sanitizeDescription($data['description'] ?? null);
+        $data['location'] = ($loc = trim((string) ($data['location'] ?? ''))) !== '' ? $loc : null;
+        $thumbnailPath = $event->thumbnail;
+
+        if ($request->file('thumbnail')) {
+            if (!empty($event->thumbnail)) {
+                Storage::disk('public')->delete($event->thumbnail);
+            }
+            $thumbnailPath = $this->storeNormalizedThumbnail($request->file('thumbnail'));
+        }
+
+        $data['thumbnail'] = $thumbnailPath;
 
         $event->update($data);
 

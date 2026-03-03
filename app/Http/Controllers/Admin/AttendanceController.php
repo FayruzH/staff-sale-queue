@@ -109,22 +109,37 @@ class AttendanceController extends Controller
     public function scanCheckIn(Request $request, Event $event)
     {
         $data = $request->validate([
-            'queue_number' => ['required', 'string', 'max:60'], // muat "123|B01-001"
+            'queue_number' => ['required', 'string', 'max:255'], // muat "123-B01001-NIP-NAMA"
         ]);
 
-        $raw = trim($data['queue_number']);
+        // scanner tertentu bisa nambah newline/tab saat submit.
+        $raw = trim((string) preg_replace('/[\r\n\t]+/', '', $data['queue_number']));
+        $eventFromQr = null;
+        $queue = null;
+        $employeeIdFromQr = null;
+        $employeeNameFromQr = null;
 
-        //  validasi format dasar
-        if (!str_contains($raw, '|')) {
-            return back()
-                ->withInput()
-                ->with('error', 'Format tidak valid.');
+        if (str_contains($raw, '|')) {
+            [$eventPart, $queuePart, $employeeIdPart, $employeeNamePart] = array_pad(explode('|', $raw, 4), 4, null);
+            $eventFromQr = (int) trim((string) $eventPart);
+            $queue = strtoupper(trim((string) $queuePart));
+            $employeeIdFromQr = trim((string) $employeeIdPart);
+            $employeeNameFromQr = trim((string) $employeeNamePart);
+        } elseif (preg_match('/^(\d+)-B(\d{2})-?(\d{3})(?:-([A-Z0-9]+))?(?:-(.*))?$/i', $raw, $m)) {
+            // format baru: "30-B01001-12345-NAMA"
+            $eventFromQr = (int) $m[1];
+            $queue = sprintf('B%s-%s', $m[2], $m[3]);
+            $employeeIdFromQr = isset($m[4]) ? trim((string) $m[4]) : null;
+            $employeeNameFromQr = isset($m[5]) ? trim((string) $m[5]) : null;
+        } else {
+            // fallback untuk scanner yang buang simbol (contoh "|" / "-")
+            // contoh tetap kebaca: "30B01-001", "30B01001", "30B01-00112345NAMA"
+            $compact = strtoupper((string) preg_replace('/[^A-Z0-9]/', '', $raw));
+            if (preg_match('/^(\d+)B(\d{2})(\d{3})(.*)$/', $compact, $m)) {
+                $eventFromQr = (int) $m[1];
+                $queue = sprintf('B%s-%s', $m[2], $m[3]);
+            }
         }
-        // parse QR
-        [$eventFromQr, $queue] = array_pad(explode('|', $raw, 2), 2, null);
-
-        $eventFromQr = (int) trim((string) $eventFromQr);
-        $queue = strtoupper(trim((string) $queue));
 
         if ($eventFromQr <= 0 || $queue === '') {
             return back()
@@ -163,8 +178,13 @@ class AttendanceController extends Controller
             'checked_in_by' => 'admin', // atau auth()->id() kalau pakai auth
         ]);
 
+        $meta = '';
+        if ($employeeIdFromQr !== '' || $employeeNameFromQr !== '') {
+            $meta = " | QR: {$employeeIdFromQr} - {$employeeNameFromQr}";
+        }
+
         return back()
-            ->with('success', "OK: {$reg->queue_number} - {$reg->employee_name} ({$reg->employee_identifier})")
+            ->with('success', "OK: {$reg->queue_number} - {$reg->employee_name} ({$reg->employee_identifier}){$meta}")
             ->with('last_scanned_id', $reg->id);
     }
 

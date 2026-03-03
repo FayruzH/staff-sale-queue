@@ -2,6 +2,34 @@
 
 @section('title', 'Admin - Events')
 
+@push('styles')
+  <style>
+    .events-filter .form-label {
+      font-size: .78rem;
+    }
+
+    @media (max-width: 767.98px) {
+      .events-filter {
+        row-gap: .5rem !important;
+      }
+
+      .events-filter .form-label {
+        display: none;
+      }
+
+      .events-filter .form-control,
+      .events-filter .form-select {
+        font-size: .875rem;
+        min-height: 36px;
+      }
+
+      .events-filter-card .card-body {
+        padding: .65rem .75rem !important;
+      }
+    }
+  </style>
+@endpush
+
 @section('content')
 
   <div class="d-flex justify-content-between align-items-start gap-2 mb-3">
@@ -11,10 +39,51 @@
     </div>
 
     <a href="{{ route('admin.events.create') }}" class="btn btn-dark fw-semibold">
-      <i class="bi bi-plus-lg"></i>
-      Create Event
+      <span class="d-inline-flex align-items-center gap-2">
+        <i class="bi bi-plus-lg"></i>
+        <span>Create Event</span>
+      </span>
     </a>
   </div>
+
+  @if(($totalEvents ?? $events->count()) > 3)
+    <div class="events-filter-card card border-0 shadow-sm mb-2">
+      <div class="card-body py-2 px-3">
+        <form id="eventsFilterForm" method="GET" action="{{ route('admin.events.index') }}" class="events-filter row g-2 align-items-center">
+          <div class="col-12 col-md-7">
+            <label class="form-label text-muted small mb-1">Filter</label>
+            <input
+              type="text"
+              name="q"
+              value="{{ request('q') }}"
+              class="form-control form-control-sm"
+              placeholder="Search name / location / code / date"
+            >
+          </div>
+
+          <div class="col-6 col-md-2">
+            <label class="form-label text-muted small mb-1">Status</label>
+            <select name="status" class="form-select form-select-sm">
+              <option value="">All</option>
+              <option value="draft" @selected(request('status') === 'draft')>Draft</option>
+              <option value="active" @selected(request('status') === 'active')>Active</option>
+              <option value="ended" @selected(request('status') === 'ended')>Ended</option>
+            </select>
+          </div>
+
+          <div class="col-6 col-md-3">
+            <label class="form-label text-muted small mb-1">Sort</label>
+            <select name="sort" class="form-select form-select-sm">
+              <option value="nearest" @selected(request('sort', 'nearest') === 'nearest')>Nearest</option>
+              <option value="farthest" @selected(request('sort') === 'farthest')>Farthest</option>
+              <option value="name_az" @selected(request('sort') === 'name_az')>Name A-Z</option>
+              <option value="name_za" @selected(request('sort') === 'name_za')>Name Z-A</option>
+            </select>
+          </div>
+        </form>
+      </div>
+    </div>
+  @endif
 
   {{-- Table Card --}}
   <div class="card border-0 shadow-sm">
@@ -25,16 +94,18 @@
       </div>
 
       <div class="table-responsive">
-        <table class="table table-hover align-middle">
+        <table class="table table-hover align-middle mb-0">
           <thead class="table-light">
             <tr>
               <th style="width:80px;">ID</th>
-              <th style="width:140px;">Code</th>
+              <th style="width:90px;">Thumb</th>
+              <th style="width:160px;">Code</th>
               <th>Name</th>
+              <th style="width:180px;">Location</th>
               <th style="width:140px;">Date</th>
               <th style="width:130px;">Status</th>
               <th style="width:110px;">Auto</th>
-              <th style="width:220px;">Actions</th>
+              <th style="width:240px;">Actions</th>
             </tr>
           </thead>
 
@@ -52,17 +123,45 @@
               <tr>
                 <td class="text-muted">{{ $event->id }}</td>
 
-                <td class="fw-semibold">{{ $event->code }}</td>
+                <td>
+                  @if(!empty($event->thumbnail))
+                    <img
+                      src="{{ asset('storage/'.$event->thumbnail) }}"
+                      class="rounded border bg-light"
+                      style="width:64px;height:40px;object-fit:cover;"
+                      onerror="this.outerHTML='<div class=&quot;bg-light border rounded d-flex align-items-center justify-content-center text-muted&quot; style=&quot;width:64px;height:40px;font-size:11px;&quot;>No</div>';"
+                      alt="thumb"
+                    >
+                  @else
+                    <div class="bg-light border rounded d-flex align-items-center justify-content-center text-muted"
+                         style="width:64px;height:40px;font-size:11px;">
+                      No
+                    </div>
+                  @endif
+                </td>
+
+                <td class="fw-semibold">
+                  <span class="d-inline-block text-break">{{ $event->code }}</span>
+                </td>
 
                 <td>
                   <a class="fw-semibold text-decoration-none"
                      href="{{ route('admin.events.show', $event) }}">
                     {{ $event->name }}
                   </a>
-                  <div class="text-muted small">Click to manage batches & attendance</div>
+
+                  {{-- @if(!empty($event->description))
+                    <div class="text-muted small mt-1">
+                      {{ \Illuminate\Support\Str::limit($event->description, 80) }}
+                    </div>
+                  @endif --}}
                 </td>
 
-                <td>{{ $event->event_date }}</td>
+                <td>
+                  <span class="text-muted">{{ $event->location ?: '-' }}</span>
+                </td>
+
+                <td class="text-nowrap">{{ $event->event_date }}</td>
 
                 <td>
                   <span class="badge rounded-pill {{ $statusClass }}">
@@ -105,7 +204,15 @@
               </tr>
             @empty
               <tr>
-                <td colspan="7" class="text-muted">No events found.</td>
+                <td colspan="9">
+                  <div class="text-center py-4">
+                    <div class="fw-semibold mb-1">No events found</div>
+                    <div class="text-muted small mb-3">Create your first event to get started.</div>
+                    <a href="{{ route('admin.events.create') }}" class="btn btn-dark btn-sm fw-semibold">
+                      + Create Event
+                    </a>
+                  </div>
+                </td>
               </tr>
             @endforelse
           </tbody>
@@ -152,6 +259,30 @@
 
 @push('scripts')
 <script>
+  (function () {
+    const filterForm = document.getElementById('eventsFilterForm');
+    if (filterForm) {
+      const qInput = filterForm.querySelector('input[name="q"]');
+      const statusSelect = filterForm.querySelector('select[name="status"]');
+      const sortSelect = filterForm.querySelector('select[name="sort"]');
+      let debounceTimer;
+
+      const submitFilter = function () {
+        filterForm.requestSubmit();
+      };
+
+      if (qInput) {
+        qInput.addEventListener('input', function () {
+          clearTimeout(debounceTimer);
+          debounceTimer = setTimeout(submitFilter, 350);
+        });
+      }
+
+      if (statusSelect) statusSelect.addEventListener('change', submitFilter);
+      if (sortSelect) sortSelect.addEventListener('change', submitFilter);
+    }
+  })();
+
   (function () {
     const modal = document.getElementById('deleteModal');
     if (!modal) return;

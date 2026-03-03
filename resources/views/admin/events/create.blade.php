@@ -1,4 +1,4 @@
-@extends('layouts.admin')
+﻿@extends('layouts.admin')
 
 @section('title', 'Create Event')
 
@@ -18,12 +18,12 @@
 <div class="card border-0 shadow-sm">
   <div class="card-body">
 
-    <form method="POST" action="{{ route('admin.events.store') }}">
+    <form method="POST" action="{{ route('admin.events.store') }}" enctype="multipart/form-data">
       @csrf
 
+      {{-- BASIC INFO --}}
       <div class="row g-3">
 
-        {{-- Event Name --}}
         <div class="col-12">
           <label class="form-label fw-semibold">Event Name</label>
           <input
@@ -32,44 +32,57 @@
             value="{{ old('name') }}"
             class="form-control @error('name') is-invalid @enderror"
             required
+            autocomplete="off"
           >
           @error('name') <div class="invalid-feedback">{{ $message }}</div> @enderror
         </div>
 
-        {{-- Event Code --}}
-        <div class="col-md-6">
-          <label class="form-label fw-semibold">Event Code</label>
+        <div class="col-12 col-md-6">
+          <label class="form-label fw-semibold">Location <span class="text-muted small">(optional)</span></label>
           <input
             type="text"
-            name="code"
-            value="{{ old('code') }}"
-            class="form-control @error('code') is-invalid @enderror"
-            required
+            name="location"
+            value="{{ old('location') }}"
+            class="form-control @error('location') is-invalid @enderror"
+            autocomplete="off"
+            placeholder="Contoh: Gedung A, Lantai 3"
           >
-          @error('code') <div class="invalid-feedback">{{ $message }}</div> @enderror
+          @error('location') <div class="invalid-feedback">{{ $message }}</div> @enderror
         </div>
 
-        {{-- Date --}}
-        <div class="col-md-6">
-        <label class="form-label fw-semibold">Event Date</label>
+        <div class="col-12">
+          <label class="form-label fw-semibold">Description</label>
+          <input id="event-description" type="hidden" name="description" value="{{ old('description') }}">
+          <trix-editor input="event-description" class="@error('description') is-invalid @enderror"></trix-editor>
+          @error('description') <div class="invalid-feedback">{{ $message }}</div> @enderror
+        </div>
 
-        <input
+        <div class="col-12 col-md-6">
+          <label class="form-label fw-semibold">Thumbnail Image</label>
+          <input
+            type="file"
+            name="thumbnail"
+            class="form-control @error('thumbnail') is-invalid @enderror"
+            accept="image/png,image/jpeg,image/jpg,image/webp"
+          >
+          @error('thumbnail') <div class="invalid-feedback">{{ $message }}</div> @enderror
+          <div class="form-text">Max 2MB. Format JPG/PNG/WEBP. Thumbnail akan otomatis di-crop dan resize ke template 16:10.</div>
+        </div>
+
+        <div class="col-12 col-md-6">
+          <label class="form-label fw-semibold">Event Date</label>
+          <input
             type="text"
             name="event_date"
             value="{{ old('event_date') }}"
             class="form-control @error('event_date') is-invalid @enderror js-date"
             placeholder="YYYY-MM-DD"
             required
-        >
-
-        @error('event_date')
-            <div class="invalid-feedback">{{ $message }}</div>
-        @enderror
+          >
+          @error('event_date') <div class="invalid-feedback">{{ $message }}</div> @enderror
         </div>
 
-
-        {{-- Time --}}
-        <div class="col-md-4">
+        <div class="col-12 col-md-4">
           <label class="form-label fw-semibold">Start Time</label>
           <input
             type="time"
@@ -93,112 +106,99 @@
           @error('end_time') <div class="invalid-feedback">{{ $message }}</div> @enderror
         </div>
 
-        <hr class="my-4">
+      </div>
 
-        {{-- BATCH SETTINGS --}}
-        <div class="row g-3">
+      <hr class="my-4">
 
-             {{-- Batch Duration --}}
-            <div class="col-12 col-md-3">
-                <label class="form-label fw-semibold">
-                Batch Duration
-                <span class="text-muted small">(minutes)</span>
-                </label>
-                <input
-                type="number"
-                name="batch_duration_min"
-                value="{{ old('batch_duration_min', $event->batch_duration_min ?? '') }}"
-                class="form-control @error('batch_duration_min') is-invalid @enderror"
-                required
-                >
-                @error('batch_duration') <div class="invalid-feedback">{{ $message }}</div> @enderror
-            </div>
+      {{-- BATCH SETTINGS --}}
+      <div class="row g-3">
 
-            {{-- Gap Between Batch --}}
-            <div class="col-12 col-md-3">
-                <label class="form-label fw-semibold">
-                Gap Between Batch
-                <span class="text-muted small">(minutes)</span>
-                </label>
-                <input
-                type="number"
-                name="gap_min"
-                value="{{ old('gap_min', $event->gap_min ?? 0) }}"
-                class="form-control @error('gap_min') is-invalid @enderror"
-                required
-                >
-                @error('gap_between_batch') <div class="invalid-feedback">{{ $message }}</div> @enderror
-            </div>
-
-            {{-- Break Time --}}
-            <div class="col-12 col-md-3">
-            <label class="form-label fw-semibold">
-                Break Start <span class="text-muted small">(optional)</span>
-            </label>
-            <input
-                type="time"
-                name="break_start"
-                value="{{ old('break_start') }}"
-                class="form-control @error('break_start') is-invalid @enderror"
-            >
-            @error('break_start') <div class="invalid-feedback">{{ $message }}</div> @enderror
-            </div>
-
-            <div class="col-12 col-md-3">
-            <label class="form-label fw-semibold">
-                Break End <span class="text-muted small">(optional)</span>
-            </label>
-            <input
-                type="time"
-                name="break_end"
-                value="{{ old('break_end') }}"
-                class="form-control @error('break_end') is-invalid @enderror"
-            >
-            @error('break_end') <div class="invalid-feedback">{{ $message }}</div> @enderror
-            </div>
-
-
-            {{-- Capacity --}}
-            <div class="col-12 col-md-3">
-                <label class="form-label fw-semibold">
-                Capacity / Batch
-                </label>
-                <input
-                type="number"
-                name="capacity_per_batch"
-                value="{{ old('capacity_per_batch') }}"
-                class="form-control @error('capacity_per_batch') is-invalid @enderror"
-                min="1"
-                required
-                >
-                @error('capacity_per_batch') <div class="invalid-feedback">{{ $message }}</div> @enderror
-            </div>
-
-            {{-- <div class="col-md-4">
-            <label class="form-label fw-semibold">Auto Mode</label>
-            <select name="is_auto_mode" class="form-select">
-                <option value="0">OFF</option>
-                <option value="1">ON</option>
-            </select>
-            </div> --}}
-
+        <div class="col-12 col-md-3">
+          <label class="form-label fw-semibold">
+            Batch Duration <span class="text-muted small">(minutes)</span>
+          </label>
+          <input
+            type="number"
+            name="batch_duration_min"
+            value="{{ old('batch_duration_min') }}"
+            class="form-control @error('batch_duration_min') is-invalid @enderror"
+            min="1"
+            required
+          >
+          @error('batch_duration_min') <div class="invalid-feedback">{{ $message }}</div> @enderror
         </div>
 
-        <div class="text-muted small mt-4">
-          Kalau break dipakai, isi <span class="fw-semibold">Break Start</span> & <span class="fw-semibold">Break End</span>.
-          Kalau kosong, event dianggap tanpa break.
+        <div class="col-12 col-md-3">
+          <label class="form-label fw-semibold">
+            Gap Between Batch <span class="text-muted small">(minutes)</span>
+          </label>
+          <input
+            type="number"
+            name="gap_min"
+            value="{{ old('gap_min', 0) }}"
+            class="form-control @error('gap_min') is-invalid @enderror"
+            min="0"
+            required
+          >
+          @error('gap_min') <div class="invalid-feedback">{{ $message }}</div> @enderror
         </div>
 
-        <hr class="my-4">
-
-        <div class="d-flex gap-2">
-            <button type="submit" class="btn btn-dark fw-semibold">
-            <i class="bi bi-check-lg"></i> Create Event
-            </button>
-            <a href="{{ route('admin.events.index') }}" class="btn btn-outline-secondary fw-semibold">
-            Cancel
-            </a>
+        <div class="col-12 col-md-3">
+          <label class="form-label fw-semibold">
+            Break Start <span class="text-muted small">(optional)</span>
+          </label>
+          <input
+            type="time"
+            name="break_start"
+            value="{{ old('break_start') }}"
+            class="form-control @error('break_start') is-invalid @enderror"
+          >
+          @error('break_start') <div class="invalid-feedback">{{ $message }}</div> @enderror
         </div>
+
+        <div class="col-12 col-md-3">
+          <label class="form-label fw-semibold">
+            Break End <span class="text-muted small">(optional)</span>
+          </label>
+          <input
+            type="time"
+            name="break_end"
+            value="{{ old('break_end') }}"
+            class="form-control @error('break_end') is-invalid @enderror"
+          >
+          @error('break_end') <div class="invalid-feedback">{{ $message }}</div> @enderror
+        </div>
+
+        <div class="col-12 col-md-3">
+          <label class="form-label fw-semibold">Capacity / Batch</label>
+          <input
+            type="number"
+            name="capacity_per_batch"
+            value="{{ old('capacity_per_batch') }}"
+            class="form-control @error('capacity_per_batch') is-invalid @enderror"
+            min="1"
+            required
+          >
+          @error('capacity_per_batch') <div class="invalid-feedback">{{ $message }}</div> @enderror
+        </div>
+
+      </div>
+
+      <div class="text-muted small mt-4">
+        Kalau break dipakai, isi <span class="fw-semibold">Break Start</span> & <span class="fw-semibold">Break End</span>.
+        Kalau kosong, event dianggap tanpa break.
+      </div>
+
+      <hr class="my-4">
+
+      <div class="d-flex gap-2">
+        <button type="submit" class="btn btn-dark fw-semibold">
+          <i class="bi bi-check-lg"></i> Create Event
+        </button>
+        <a href="{{ route('admin.events.index') }}" class="btn btn-outline-secondary fw-semibold">
+          Cancel
+        </a>
+      </div>
 
     </form>
 
@@ -207,8 +207,60 @@
 
 @endsection
 
+@push('styles')
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/trix@2.1.8/dist/trix.min.css">
+<style>
+  .trix-button-group--file-tools {
+    display: none !important;
+  }
+</style>
+@endpush
+
 @push('scripts')
+<script src="https://cdn.jsdelivr.net/npm/trix@2.1.8/dist/trix.umd.min.js"></script>
 <script>
+  document.addEventListener('trix-file-accept', function (event) {
+    event.preventDefault();
+  });
+
+  document.addEventListener('trix-attachment-add', function (event) {
+    if (event.attachment && event.attachment.file) {
+      event.attachment.remove();
+    }
+  });
+
+  document.addEventListener('trix-initialize', function (event) {
+    const editorElement = event.target;
+    const INDENT = '\u00A0\u00A0\u00A0\u00A0';
+
+    editorElement.addEventListener('keydown', function (e) {
+      if (e.key !== 'Tab') return;
+      e.preventDefault();
+
+      const editor = editorElement.editor;
+      if (!editor) return;
+
+      if (!e.shiftKey) {
+        editor.insertString(INDENT);
+        return;
+      }
+
+      const range = editor.getSelectedRange();
+      const start = range[0];
+      const end = range[1];
+
+      if (start !== end || start < INDENT.length) return;
+
+      const plain = editor.getDocument().toString();
+      const left = plain.slice(start - INDENT.length, start);
+
+      if (left === INDENT) {
+        editor.setSelectedRange([start - INDENT.length, start]);
+        editor.deleteInDirection('backward');
+      }
+    });
+  });
+
   flatpickr('.js-date', {
     dateFormat: 'Y-m-d',
     allowInput: true,
@@ -216,3 +268,5 @@
   });
 </script>
 @endpush
+
+

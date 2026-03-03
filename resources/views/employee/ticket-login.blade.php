@@ -106,4 +106,38 @@
     @endpush
   @endif
 
+  @php
+    $ticketBlockedMsg = null;
+    if (session('ticket_checked_in')) {
+      $ticketBlockedMsg = session('ticket_checked_in_message') ?? 'Ticket kamu sudah digunakan (check-in).';
+    } elseif (session('ticket_expired')) {
+      $ticketBlockedMsg = session('ticket_expired_message') ?? 'Ticket kamu sudah hangus karena batch/event sudah lewat.';
+    }
+  @endphp
+
+  @if($ticketBlockedMsg)
+    <div class="modal fade" id="ticketBlockedModal" tabindex="-1" aria-hidden="true">
+      <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content border-0 shadow">
+          <div class="modal-body">
+            <div class="fw-semibold mb-2">{{ $ticketBlockedMsg }}</div>
+            <div class="text-muted small">Ticket sudah tidak bisa dipakai lagi. Silakan hubungi admin jika ada kesalahan.</div>
+          </div>
+          <div class="modal-footer border-0 pt-0">
+            <button type="button" class="btn btn-dark fw-semibold" data-bs-dismiss="modal">OK</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    @push('scripts')
+      <script>
+        document.addEventListener('DOMContentLoaded', function () {
+          const el = document.getElementById('ticketBlockedModal');
+          if (el && window.bootstrap) new bootstrap.Modal(el).show();
+        });
+      </script>
+    @endpush
+  @endif
+
 @endsection

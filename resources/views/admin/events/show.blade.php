@@ -1,6 +1,135 @@
-@extends('layouts.admin')
+﻿@extends('layouts.admin')
 
 @section('title', 'Event Detail - ' . $event->name)
+
+@push('styles')
+  <style>
+    .event-thumb-box {
+      border: 1px solid #d8dfec;
+      border-radius: .72rem;
+      overflow: hidden;
+      background: #f4f6fb;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: #8b97b0;
+      font-size: .86rem;
+      height: 100%;
+    }
+
+    .event-thumb-box img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      display: block;
+    }
+
+    .event-desc-card {
+      border: 1px solid #d8dfec;
+      border-radius: .72rem;
+      background: #f7f9fd;
+      padding: .8rem .9rem;
+      min-height: 140px;
+    }
+
+    .event-desc-content {
+      min-height: 0;
+      display: flex;
+      flex-direction: column;
+      flex: 1;
+    }
+
+    .event-desc-rich {
+      color: #4f5b73;
+      font-size: .95rem;
+      line-height: 1.58;
+      max-height: 76px;
+      overflow: hidden;
+      position: relative;
+      word-break: break-word;
+      overflow-wrap: anywhere;
+    }
+
+    .event-desc-rich p {
+      margin: 0 0 .35rem;
+    }
+
+    .event-desc-rich p:last-child {
+      margin-bottom: 0;
+    }
+
+    .event-desc-rich ul,
+    .event-desc-rich ol {
+      margin: 0;
+      padding-left: 1.1rem;
+    }
+
+    .event-desc-rich li {
+      margin: 0 0 .2rem;
+    }
+
+    .event-desc-rich.is-clamped::after {
+      content: "";
+      position: absolute;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      height: 24px;
+      background: linear-gradient(to bottom, rgba(247, 249, 253, 0), rgba(247, 249, 253, 1));
+      pointer-events: none;
+    }
+
+    .event-show-more {
+      margin-top: auto;
+      margin-left: auto;
+      align-self: flex-end;
+      padding: 0;
+      border: 0;
+      background: transparent;
+      color: #3751bd;
+      font-size: .86rem;
+      font-weight: 600;
+      line-height: 1.2;
+      text-decoration: none;
+      width: fit-content;
+      display: inline-flex;
+      align-items: center;
+      gap: .35rem;
+    }
+
+    .event-show-more:hover,
+    .event-show-more:focus {
+      color: #2b3f98;
+      text-decoration: underline;
+    }
+
+    .event-info-badges {
+      display: flex;
+      flex-wrap: wrap;
+      gap: .45rem;
+      align-items: center;
+    }
+
+    .event-info-badges .badge {
+      display: inline-flex;
+      align-items: center;
+      min-height: 30px;
+      padding: .34rem .68rem;
+      font-size: .82rem;
+      line-height: 1.1;
+    }
+
+    @media (max-width: 767.98px) {
+      .event-desc-rich {
+        max-height: 96px;
+      }
+
+      .event-info-badges .badge {
+        font-size: .79rem;
+      }
+    }
+  </style>
+@endpush
 
 @section('content')
 
@@ -10,8 +139,9 @@
       <h1 class="h4 fw-semibold mb-1">Event Detail</h1>
       <div class="text-muted small">
         <span class="fw-semibold">{{ $event->name }}</span>
-        • Code: {{ $event->code }}
-        • Date: {{ $event->event_date }}
+        - Code: {{ $event->code }}
+        - Location: {{ $event->location ?: '-' }}
+        - Date: {{ $event->event_date }}
       </div>
     </div>
 
@@ -34,58 +164,125 @@
     </div>
   </div>
 
-  {{-- Event Summary --}}
+  {{-- Thumbnail + Description --}}
+  @php
+    $thumb = $event->thumbnail ?? null;
+    $thumbUrl = $thumb ? asset('storage/'.$thumb) : null;
+  @endphp
+
   <div class="card border-0 shadow-sm mb-3">
     <div class="card-body">
-      <div class="row g-3">
-        <div class="col-md-3">
-          <div class="text-muted small">Status</div>
-          @php
-            $statusClass = match($event->status) {
-              'draft'  => 'text-bg-secondary',
-              'active' => 'text-bg-success',
-              'ended'  => 'text-bg-dark',
-              default  => 'text-bg-light border',
-            };
-          @endphp
-          <span class="badge rounded-pill {{ $statusClass }}">{{ strtoupper($event->status) }}</span>
-        </div>
-
-        <div class="col-md-3">
-          <div class="text-muted small">Auto Mode</div>
-          <span class="badge rounded-pill {{ $event->is_auto_mode ? 'text-bg-success' : 'text-bg-secondary' }}">
-            {{ $event->is_auto_mode ? 'ON' : 'OFF' }}
-          </span>
-        </div>
-
-        <div class="col-md-3">
-          <div class="text-muted small">Time</div>
-          <div class="fw-semibold">{{ $event->start_time }} - {{ $event->end_time }}</div>
-        </div>
-
-        <div class="col-md-3">
-          <div class="text-muted small">Break Window</div>
-          <div class="fw-semibold">
-            {{ $event->break_start ?? '-' }} - {{ $event->break_end ?? '-' }}
+      <div class="row g-3 align-items-stretch">
+        <div class="col-12 col-md-4 col-lg-3">
+          <div class="ratio" style="--bs-aspect-ratio: 62.5%;">
+            <div class="event-thumb-box" id="thumbWrap">
+              @if($thumbUrl)
+                <img
+                  src="{{ $thumbUrl }}"
+                  alt="Thumbnail"
+                  onerror="document.getElementById('thumbWrap').innerHTML = `<span>No thumbnail</span>`;"
+                >
+              @else
+                <span>No thumbnail</span>
+              @endif
+            </div>
           </div>
         </div>
 
-        <div class="col-md-3">
+        <div class="col-12 col-md-8 col-lg-9">
+          <div class="event-desc-card h-100">
+            <div class="small text-muted mb-1">Description</div>
+            <div class="event-desc-content">
+              @if(!empty($event->description))
+                <div class="event-desc-rich is-clamped" id="eventDescClamp">{!! $event->description !!}</div>
+                <button
+                  type="button"
+                  class="event-show-more"
+                  data-bs-toggle="modal"
+                  data-bs-target="#eventDescModal"
+                  data-desc-source="#eventDescFull"
+                >
+                  <i class="bi bi-chevron-down"></i>
+                  <span>Read more</span>
+                </button>
+                <template id="eventDescFull">{!! $event->description !!}</template>
+              @else
+                <div class="small fst-italic text-muted">Belum ada deskripsi untuk event ini.</div>
+              @endif
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <hr class="my-3">
+
+      <div class="event-info-badges">
+        @php
+          $statusClass = match($event->status) {
+            'draft'  => 'text-bg-warning text-dark',
+            'active' => 'text-bg-success',
+            'ended'  => 'text-bg-dark',
+            default  => 'text-bg-light border',
+          };
+        @endphp
+
+        <span class="badge rounded-pill {{ $statusClass }}">
+          {{ strtoupper($event->status) }}
+        </span>
+
+        <span class="badge rounded-pill {{ $event->is_auto_mode ? 'text-bg-success' : 'text-bg-secondary' }}">
+          Auto: {{ $event->is_auto_mode ? 'ON' : 'OFF' }}
+        </span>
+
+        <span class="badge rounded-pill text-bg-light border text-dark">
+          {{ $event->start_time }} - {{ $event->end_time }}
+        </span>
+
+        <span class="badge rounded-pill text-bg-light border text-dark">
+          Location: {{ $event->location ?: '-' }}
+        </span>
+
+        <span class="badge rounded-pill text-bg-light border text-dark">
+          Break: {{ $event->break_start ?? '-' }} - {{ $event->break_end ?? '-' }}
+        </span>
+      </div>
+    </div>
+  </div>
+
+  <div class="modal fade" id="eventDescModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered modal-lg">
+      <div class="modal-content border-0 shadow">
+        <div class="modal-header border-0 pb-0">
+          <h5 class="modal-title fw-semibold">Event Description</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+        </div>
+        <div class="modal-body pt-2">
+          <div id="eventDescModalBody" class="event-desc-rich" style="max-height:none;overflow:visible;"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  {{-- Summary --}}
+  <div class="card border-0 shadow-sm mb-3">
+    <div class="card-body">
+      <div class="row g-3">
+        <div class="col-6 col-lg-3">
           <div class="text-muted small">Batch Duration</div>
           <div class="fw-semibold">{{ $event->batch_duration_min }} min</div>
         </div>
 
-        <div class="col-md-3">
+        <div class="col-6 col-lg-3">
           <div class="text-muted small">Gap Between Batch</div>
           <div class="fw-semibold">{{ $event->gap_min }} min</div>
         </div>
 
-        <div class="col-md-3">
+        <div class="col-6 col-lg-3">
           <div class="text-muted small">Capacity / Batch</div>
           <div class="fw-semibold">{{ $event->capacity_per_batch }}</div>
         </div>
 
-        <div class="col-md-3">
+        <div class="col-6 col-lg-3">
           <div class="text-muted small">Total Batches</div>
           <div class="fw-semibold">{{ $event->batches->count() }}</div>
         </div>
@@ -98,18 +295,13 @@
     <div class="card-body">
       <div class="d-flex flex-wrap gap-2">
 
-        {{-- Reset Demo --}}
-        <button
-          class="btn btn-warning fw-semibold"
-          data-action="{{ route('admin.events.reset', $event) }}"
-          data-method="POST"
-          data-confirm="Yes, Reset"
-          data-confirm-class="btn-warning"
-        >
-          <i class="bi bi-arrow-counterclockwise"></i> Reset Demo
-        </button>
+        <form method="POST" action="{{ route('admin.events.reset', $event) }}" class="d-inline">
+          @csrf
+          <button class="btn btn-warning fw-semibold" type="submit">
+            <i class="bi bi-arrow-counterclockwise"></i> Reset Demo
+          </button>
+        </form>
 
-        {{-- Generate Batches --}}
         <form method="POST" action="{{ route('admin.events.generateBatches', $event) }}" class="d-inline">
           @csrf
           <button class="btn btn-outline-secondary fw-semibold" type="submit">
@@ -117,44 +309,33 @@
           </button>
         </form>
 
-        {{-- Start Event --}}
         <form method="POST" action="{{ route('admin.events.start', $event) }}" class="d-inline">
           @csrf
-          <button class="btn btn-success fw-semibold"
-                  type="submit"
-                  {{ $event->status !== 'draft' ? 'disabled' : '' }}>
+          <button class="btn btn-success fw-semibold" type="submit" {{ $event->status !== 'draft' ? 'disabled' : '' }}>
             <i class="bi bi-play-fill"></i> Start Event
           </button>
         </form>
 
-        {{-- End Event --}}
         <form method="POST" action="{{ route('admin.events.end', $event) }}" class="d-inline">
           @csrf
-          <button class="btn btn-danger fw-semibold"
-                  type="submit"
-                  {{ $event->status !== 'active' ? 'disabled' : '' }}>
-            <i class="bi bi-stop-fill "></i> End Event
+          <button class="btn btn-danger fw-semibold" type="submit" {{ $event->status !== 'active' ? 'disabled' : '' }}>
+            <i class="bi bi-stop-fill"></i> End Event
           </button>
         </form>
 
-         {{-- Auto Mode Toggle --}}
         <form method="POST" action="{{ route('admin.events.autoMode', $event) }}" class="d-inline">
-            @csrf
-            <button class="btn btn-outline-secondary fw-semibold" type="submit">
-            <i class="bi bi-grid-3x3-gap"></i>
-            Auto Mode: {{ $event->is_auto_mode ? 'ON' : 'OFF' }}
-            </button>
+          @csrf
+          <button class="btn btn-outline-secondary fw-semibold" type="submit">
+            <i class="bi bi-toggles"></i> Auto Mode: {{ $event->is_auto_mode ? 'ON' : 'OFF' }}
+          </button>
         </form>
 
-        {{-- Delete  --}}
-            <button type="button" class="btn btn-outline-danger fw-semibold "
-                    data-bs-toggle="modal" data-bs-target="#deleteModal"
-                    data-action="{{ route('admin.events.destroy', $event) }}"
-                    data-name="{{ $event->name }}"
-                    >
-                <i class="bi bi-trash3"></i> Delete
-            </button>
-
+        <button type="button"
+                class="btn btn-outline-danger fw-semibold"
+                data-bs-toggle="modal"
+                data-bs-target="#deleteModal">
+          <i class="bi bi-trash3"></i> Delete
+        </button>
 
       </div>
     </div>
@@ -166,48 +347,18 @@
     <div class="text-muted small">Total: {{ $event->batches->count() }}</div>
   </div>
 
-  @php
-    $duplicateColors = $event->batches
-      ->groupBy('color_code')
-      ->filter(fn($g) => $g->count() > 1);
-  @endphp
-
-  @if($duplicateColors->isNotEmpty())
-    <div class="alert alert-warning border-0 shadow-sm">
-      <div class="fw-semibold mb-1">
-        <i class="bi bi-exclamation-triangle me-1"></i>
-        Duplicate batch colors detected
-      </div>
-      <div class="text-muted small">
-        Beberapa batch punya warna yang sama. Kalau target kamu “1 batch = 1 warna unik”, regenerate batches setelah update palette / logic assign warna.
-      </div>
-      <ul class="small mb-0 mt-2">
-        @foreach($duplicateColors as $hex => $group)
-          <li>
-            <span class="d-inline-block rounded-2 border align-middle"
-                  style="width:14px;height:14px;background:{{ $hex }};"></span>
-            <span class="ms-2">{{ $hex }}</span>
-            <span class="text-muted">→ batch:
-              {{ $group->pluck('batch_number')->implode(', ') }}
-            </span>
-          </li>
-        @endforeach
-      </ul>
-    </div>
-  @endif
-
   <div class="card border-0 shadow-sm">
     <div class="card-body">
       @if($event->batches->isEmpty())
         <div class="text-muted">No batches yet.</div>
       @else
         <div class="table-responsive">
-          <table class="table table-hover align-middle">
+          <table class="table table-hover align-middle mb-0">
             <thead class="table-light">
               <tr>
-                <th style="width:80px;">#</th>
-                <th style="width:170px;">Time</th>
-                <th style="width:120px;">Capacity</th>
+                <th style="width:70px;">#</th>
+                <th style="width:180px;">Time</th>
+                <th style="width:110px;">Capacity</th>
                 <th style="width:130px;">Status</th>
                 <th style="width:260px;">Color</th>
                 <th style="width:240px;">Action</th>
@@ -215,7 +366,6 @@
             </thead>
             <tbody>
               @foreach($event->batches as $b)
-
                 @php
                   $bStatusClass = match($b->status) {
                     'upcoming' => 'text-bg-primary',
@@ -255,19 +405,17 @@
                       <span class="text-muted small">Start event dulu</span>
                     @else
                       <div class="d-flex flex-wrap gap-2">
-                        <form method="POST" action="{{ route('admin.batches.start', $b) }}" class="d-inline">
+                        <form method="POST" action="{{ route('admin.batches.start', $b) }}">
                           @csrf
-                          <button type="submit"
-                                  class="btn btn-outline-primary btn-sm fw-semibold"
+                          <button class="btn btn-outline-primary btn-sm fw-semibold" type="submit"
                                   {{ $b->status !== 'upcoming' ? 'disabled' : '' }}>
                             Start Batch
                           </button>
                         </form>
 
-                        <form method="POST" action="{{ route('admin.batches.complete', $b) }}" class="d-inline">
+                        <form method="POST" action="{{ route('admin.batches.complete', $b) }}">
                           @csrf
-                          <button type="submit"
-                                  class="btn btn-outline-success btn-sm fw-semibold"
+                          <button class="btn btn-outline-success btn-sm fw-semibold" type="submit"
                                   {{ $b->status !== 'running' ? 'disabled' : '' }}>
                             Complete
                           </button>
@@ -284,32 +432,7 @@
     </div>
   </div>
 
-  {{-- Generic Confirm Modal (dipakai delete + reset) --}}
-  <div class="modal fade" id="confirmModal" tabindex="-1" aria-hidden="true">
-    <div class="modal-dialog modal-dialog-centered">
-      <div class="modal-content border-0 shadow">
-        <div class="modal-body">
-          <div class="fw-semibold mb-2" id="cmTitle">Confirm</div>
-          <div class="text-muted small" id="cmBody">Are you sure?</div>
-
-          <div class="d-flex justify-content-end gap-2 mt-3">
-            <button type="button" class="btn btn-outline-secondary fw-semibold" data-bs-dismiss="modal">
-              Cancel
-            </button>
-            <form id="cmForm" method="POST" action="">
-              @csrf
-              <input type="hidden" name="_method" id="cmMethod" value="POST">
-              <button type="submit" id="cmConfirmBtn" class="btn btn-danger fw-semibold">Confirm</button>
-            </form>
-          </div>
-
-        </div>
-      </div>
-    </div>
-  </div>
-
-
-  {{-- Delete Confirm Modal --}}
+  {{-- Delete Modal --}}
   <div class="modal fade" id="deleteModal" tabindex="-1" aria-hidden="true">
     <div class="modal-dialog modal-dialog-centered">
       <div class="modal-content border-0 shadow">
@@ -318,7 +441,7 @@
           <div class="text-muted small">
             Hapus event:
             <div class="mt-2">
-              <span class="fw-semibold text-dark" id="delName">-</span>
+              <span class="fw-semibold text-dark">{{ $event->name }}</span>
             </div>
           </div>
 
@@ -328,50 +451,47 @@
         </div>
 
         <div class="modal-footer border-0 pt-0">
-                <form id="deleteForm" method="POST" action="#">
-                    @csrf
-                    @method('DELETE')
-                    <button type="submit" class="btn btn-danger fw-semibold">Yes, Delete</button>
-                </form>
+          <form method="POST" action="{{ route('admin.events.destroy', $event) }}">
+            @csrf
+            @method('DELETE')
+            <button type="submit" class="btn btn-danger fw-semibold">Yes, Delete</button>
+          </form>
 
-                <button type="button" class="btn btn-outline-secondary fw-semibold" data-bs-dismiss="modal">
-                    Cancel
-                </button>
-                </div>
-            </div>
-            </div>
+          <button type="button" class="btn btn-outline-secondary fw-semibold" data-bs-dismiss="modal">
+            Cancel
+          </button>
         </div>
-
-  <script>
-    // confirm modal helper
-    document.addEventListener('click', (e) => {
-      const btn = e.target.closest('[data-action][data-confirm]');
-      if (!btn) return;
-
-      const action = btn.getAttribute('data-action');
-      const method = btn.getAttribute('data-method') || 'POST';
-      const confirmText = btn.getAttribute('data-confirm') || 'Confirm';
-      const confirmClass = btn.getAttribute('data-confirm-class') || 'btn-danger';
-
-      const title = 'Confirm Action';
-      const body = 'Are you sure?';
-
-      document.getElementById('cmTitle').textContent = title;
-      document.getElementById('cmBody').textContent = body;
-
-      const form = document.getElementById('cmForm');
-      const methodEl = document.getElementById('cmMethod');
-      const confirmBtn = document.getElementById('cmConfirmBtn');
-
-      form.action = action;
-      methodEl.value = method;
-
-      confirmBtn.className = 'btn fw-semibold ' + confirmClass;
-      confirmBtn.textContent = confirmText;
-
-      const modal = new bootstrap.Modal(document.getElementById('confirmModal'));
-      modal.show();
-    });
-  </script>
+      </div>
+    </div>
+  </div>
 
 @endsection
+
+@push('scripts')
+  <script>
+    (function () {
+      const clamp = document.getElementById('eventDescClamp');
+      if (clamp) {
+        const btn = document.querySelector('.event-show-more');
+        if (btn && clamp.scrollHeight <= clamp.clientHeight + 2) {
+          clamp.classList.remove('is-clamped');
+          btn.classList.add('d-none');
+        }
+      }
+    })();
+
+    (function () {
+      const modal = document.getElementById('eventDescModal');
+      const body = document.getElementById('eventDescModalBody');
+      if (!modal || !body) return;
+
+      modal.addEventListener('show.bs.modal', function (event) {
+        const btn = event.relatedTarget;
+        if (!btn) return;
+        const sourceSelector = btn.getAttribute('data-desc-source');
+        const source = sourceSelector ? document.querySelector(sourceSelector) : null;
+        body.innerHTML = source ? source.innerHTML : '<div class="text-muted small">No description.</div>';
+      });
+    })();
+  </script>
+@endpush

@@ -2,23 +2,72 @@
 
 @section('title', 'Attendance - ' . $event->name)
 
-@section('content')
-
+@push('styles')
   <style>
-    .batch-dot{
-      width:12px;height:12px;border-radius:999px;display:inline-block;
-      border:1px solid rgba(0,0,0,.12);
-      margin-right:8px; vertical-align:middle;
+    .batch-dot {
+      width: 12px;
+      height: 12px;
+      border-radius: 999px;
+      display: inline-block;
+      border: 1px solid rgba(0, 0, 0, .12);
+      vertical-align: middle;
+    }
+
+    .attendance-filter .form-label {
+      font-size: .78rem;
+    }
+
+    @media (max-width: 767.98px) {
+      .attendance-filter {
+        row-gap: .5rem !important;
+      }
+
+      .attendance-filter .form-label {
+        display: none;
+      }
+
+      .attendance-filter .form-control,
+      .attendance-filter .form-select {
+        min-height: 36px;
+        font-size: .875rem;
+      }
+
+      .attendance-filter-card .card-body,
+      .attendance-scan-card .card-body {
+        padding: .75rem !important;
+      }
+
+      .attendance-scan-group {
+        display: block;
+      }
+
+      .attendance-scan-group .input-group-text {
+        display: none;
+      }
+
+      .attendance-scan-group .form-control {
+        border-radius: .375rem !important;
+        width: 100%;
+      }
+
+      .attendance-scan-group .btn {
+        width: 100%;
+        margin-top: .5rem;
+        border-radius: .375rem !important;
+      }
     }
   </style>
+@endpush
+
+@section('content')
 
   <div class="d-flex justify-content-between align-items-start gap-2 mb-3">
     <div>
       <h1 class="h4 fw-semibold mb-1">Attendance</h1>
       <div class="text-muted small">
         <span class="fw-semibold">{{ $event->name }}</span>
-        • Event ID: {{ $event->id }}
-        • Date: {{ $event->event_date }}
+        - Event ID: {{ $event->id }}
+        - Date: {{ $event->event_date }}
       </div>
     </div>
 
@@ -27,7 +76,6 @@
     </a>
   </div>
 
-  {{-- KPI cards --}}
   <div class="row g-3 mb-3">
     <div class="col-12 col-md-4">
       <div class="card border-0 shadow-sm">
@@ -58,18 +106,13 @@
     </div>
   </div>
 
-  {{-- QUICK SCAN --}}
-  <div class="card border-0 shadow-sm mb-3">
+  <div class="attendance-scan-card card border-0 shadow-sm mb-3">
     <div class="card-body">
-      <div class="d-flex justify-content-between align-items-center flex-wrap gap-2">
-        <div>
-          <div class="fw-semibold">Quick Scan</div>
-        </div>
-      </div>
+      <div class="fw-semibold">Quick Scan</div>
 
       <form method="POST" action="{{ route('admin.attendance.scan', $event) }}" class="mt-3">
         @csrf
-        <div class="input-group input-group-lg">
+        <div class="attendance-scan-group input-group input-group-lg">
           <span class="input-group-text"><i class="bi bi-upc-scan"></i></span>
           <input id="scanInput"
                  name="queue_number"
@@ -85,56 +128,43 @@
     </div>
   </div>
 
-  {{-- FILTERS --}}
-  <div class="card border-0 shadow-sm mb-3">
+  <div class="attendance-filter-card card border-0 shadow-sm mb-3">
     <div class="card-body">
-      <div class="fw-semibold mb-2">Filters</div>
+      <div class="fw-semibold mb-2">Filter</div>
 
-      <form method="GET" class="row g-2 align-items-end">
-        <div class="col-12 col-md-3">
-          <label class="form-label small text-muted">Batch</label>
-          <select name="batch_id" class="form-select">
+      <form id="attendanceFilterForm" method="GET" class="attendance-filter row g-2 align-items-center">
+        <div class="col-12 col-md-6">
+          <label class="form-label text-muted small mb-1">Search</label>
+          <input name="q"
+                 value="{{ request('q') }}"
+                 class="form-control form-control-sm"
+                 placeholder="Search queue / NIP / name">
+        </div>
+
+        <div class="col-6 col-md-3">
+          <label class="form-label text-muted small mb-1">Batch</label>
+          <select name="batch_id" class="form-select form-select-sm">
             <option value="">All Batches</option>
             @foreach($batches as $b)
               <option value="{{ $b->id }}" @selected(request('batch_id') == $b->id)>
-                {{-- (dropdown ga bisa render dot HTML, tapi label tetap jelas) --}}
                 Batch {{ $b->batch_number }} ({{ $b->start_time }} - {{ $b->end_time }})
               </option>
             @endforeach
           </select>
-
         </div>
 
-        <div class="col-12 col-md-3">
-          <label class="form-label small text-muted">Status</label>
-          <select name="status" class="form-select">
+        <div class="col-6 col-md-3">
+          <label class="form-label text-muted small mb-1">Status</label>
+          <select name="status" class="form-select form-select-sm">
             <option value="">All Status</option>
             <option value="pending" @selected(request('status') === 'pending')>Pending</option>
             <option value="checked" @selected(request('status') === 'checked')>Checked-in</option>
           </select>
         </div>
-
-        <div class="col-12 col-md-4">
-          <label class="form-label small text-muted">Search</label>
-          <input name="q"
-                 value="{{ request('q') }}"
-                 class="form-control"
-                 placeholder="Search queue / NIP / name">
-        </div>
-
-        <div class="col-12 col-md-2 d-grid gap-2">
-          <button type="submit" class="btn btn-dark fw-semibold">
-            <i class="bi bi-funnel"></i> Filter
-          </button>
-          <a href="{{ url()->current() }}" class="btn btn-outline-secondary fw-semibold">
-            Reset
-          </a>
-        </div>
       </form>
     </div>
   </div>
 
-  {{-- TABLE --}}
   <div class="card border-0 shadow-sm">
     <div class="card-body">
       <div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-2">
@@ -160,7 +190,6 @@
             @forelse($registrations as $i => $r)
               @php
                 $hl = session('last_scanned_id') == $r->id;
-
                 $batch = $r->batch;
                 $c = $batch->color_code ?? '#CBD5E1';
               @endphp
@@ -170,14 +199,10 @@
                   {{ $registrations->firstItem() + $i }}
                 </td>
 
-                <td class="fw-semibold">
-                  {{ $r->queue_number }}
-                </td>
-
+                <td class="fw-semibold">{{ $r->queue_number }}</td>
                 <td>{{ $r->employee_identifier }}</td>
                 <td>{{ $r->employee_name }}</td>
 
-                {{-- ✅ Batch: badge + dot warna --}}
                 <td>
                   @if($batch)
                     <div class="d-flex align-items-center gap-2">
@@ -223,9 +248,7 @@
                           action="{{ route('admin.attendance.undo', ['event' => $event->id, 'registration' => $r->id]) }}"
                           class="d-inline">
                       @csrf
-                      <button type="submit"
-                              class="btn btn-outline-danger btn-sm fw-semibold"
-                              title="Undo check-in">
+                      <button type="submit" class="btn btn-outline-danger btn-sm fw-semibold" title="Undo check-in">
                         Undo
                       </button>
                     </form>
@@ -246,26 +269,52 @@
       <div class="mt-3">
         {{ $registrations->links() }}
       </div>
-
-      <script>
-        (function () {
-          const input = document.getElementById('scanInput');
-          if (input) {
-            @if(session('success') || session('warning'))
-              input.value = '';
-            @endif
-            input.focus();
-            input.select();
-          }
-
-          const lastId = @json(session('last_scanned_id'));
-          if (lastId) {
-            const row = document.getElementById('reg-' + lastId);
-            if (row) row.scrollIntoView({ behavior: 'smooth', block: 'center' });
-          }
-        })();
-      </script>
     </div>
   </div>
 
 @endsection
+
+@push('scripts')
+  <script>
+    (function () {
+      const filterForm = document.getElementById('attendanceFilterForm');
+      if (filterForm) {
+        const qInput = filterForm.querySelector('input[name="q"]');
+        const batchSelect = filterForm.querySelector('select[name="batch_id"]');
+        const statusSelect = filterForm.querySelector('select[name="status"]');
+        let debounceTimer;
+
+        const submitFilter = function () {
+          filterForm.requestSubmit();
+        };
+
+        if (qInput) {
+          qInput.addEventListener('input', function () {
+            clearTimeout(debounceTimer);
+            debounceTimer = setTimeout(submitFilter, 350);
+          });
+        }
+
+        if (batchSelect) batchSelect.addEventListener('change', submitFilter);
+        if (statusSelect) statusSelect.addEventListener('change', submitFilter);
+      }
+    })();
+
+    (function () {
+      const input = document.getElementById('scanInput');
+      if (input) {
+        @if(session('success') || session('warning'))
+          input.value = '';
+        @endif
+        input.focus();
+        input.select();
+      }
+
+      const lastId = @json(session('last_scanned_id'));
+      if (lastId) {
+        const row = document.getElementById('reg-' + lastId);
+        if (row) row.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      }
+    })();
+  </script>
+@endpush
