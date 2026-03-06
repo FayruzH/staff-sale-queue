@@ -92,13 +92,32 @@
           @enderror
         </div>
 
+        <div class="mb-3">
+          <label class="form-label fw-semibold">Email</label>
+          <input
+            type="email"
+            name="employee_email"
+            value="{{ old('employee_email') }}"
+            required
+            class="form-control @error('employee_email') is-invalid @enderror"
+            placeholder="contoh: nama@company.com"
+            autocomplete="off"
+          >
+          @unless($errors->has('employee_email'))
+            <div class="invalid-feedback">Email wajib diisi dengan format yang valid.</div>
+          @endunless
+          @error('employee_email')
+            <div class="invalid-feedback">{{ $message }}</div>
+          @enderror
+        </div>
+
         <button type="button" id="openConfirm" class="btn btn-dark w-100 fw-semibold">
           Register
         </button>
       </form>
 
       <div class="text-muted small mt-3">
-        Pastikan data benar sebelum konfirmasi.
+        Email wajib. Ticket akan dikirim otomatis ke email setelah register.
       </div>
     </div>
   </div>
@@ -110,13 +129,14 @@
         <div class="modal-body">
           <div class="fw-semibold mb-2">Confirm Register</div>
 
-          <div class="small text-muted">
-            <div class="mb-1"><span class="fw-semibold text-dark">Event:</span> {{ $event->name }}</div>
-            <div class="mb-1"><span class="fw-semibold text-dark">Location:</span> {{ $event->location ?: '-' }}</div>
-            <div class="mb-1"><span class="fw-semibold text-dark">Batch:</span> {{ $batch->batch_number }} ({{ $batch->start_time }} - {{ $batch->end_time }})</div>
-            <div class="mb-1"><span class="fw-semibold text-dark">Employee ID:</span> <span id="cEmpId">-</span></div>
-            <div><span class="fw-semibold text-dark">Nama:</span> <span id="cEmpName">-</span></div>
-          </div>
+            <div class="small text-muted">
+              <div class="mb-1"><span class="fw-semibold text-dark">Event:</span> {{ $event->name }}</div>
+              <div class="mb-1"><span class="fw-semibold text-dark">Location:</span> {{ $event->location ?: '-' }}</div>
+              <div class="mb-1"><span class="fw-semibold text-dark">Batch:</span> {{ $batch->batch_number }} ({{ $batch->start_time }} - {{ $batch->end_time }})</div>
+              <div class="mb-1"><span class="fw-semibold text-dark">Employee ID:</span> <span id="cEmpId">-</span></div>
+              <div class="mb-1"><span class="fw-semibold text-dark">Nama:</span> <span id="cEmpName">-</span></div>
+              <div><span class="fw-semibold text-dark">Email:</span> <span id="cEmpEmail">-</span></div>
+            </div>
 
           <div class="alert alert-warning small mt-3 mb-0">
             Setelah confirm, kamu akan masuk antrian batch yang dipilih.
@@ -156,10 +176,13 @@
 
     const empId = (empIdEl?.value || '').trim();
     const empName = (empNameEl?.value || '').trim();
+    const empEmailEl = document.querySelector('[name="employee_email"]');
+    const empEmail = (empEmailEl?.value || '').trim();
 
     // reset invalid state
     empIdEl?.classList.remove('is-invalid');
     empNameEl?.classList.remove('is-invalid');
+    empEmailEl?.classList.remove('is-invalid');
 
     // simple warning (Bootstrap alert injected)
     const existingAlert = document.getElementById('clientWarn');
@@ -177,13 +200,17 @@
         empNameEl?.classList.add('is-invalid');
         firstInvalid = firstInvalid || empNameEl;
     }
+    if (!empEmail || !empEmailEl?.checkValidity()) {
+        empEmailEl?.classList.add('is-invalid');
+        firstInvalid = firstInvalid || empEmailEl;
+    }
 
     if (firstInvalid) {
         // show alert
         const alert = document.createElement('div');
         alert.id = 'clientWarn';
         alert.className = 'alert alert-warning small mb-3';
-        alert.innerHTML = '<span class="fw-semibold">Oops.</span> Isi dulu data sebelum lanjut ya.';
+        alert.innerHTML = '<span class="fw-semibold">Oops.</span> Pastikan NIP, nama, dan email valid sebelum lanjut.';
 
         // taruh alert di atas form (di dalam card body)
         const cardBody = form.closest('.card')?.querySelector('.card-body');
@@ -195,6 +222,7 @@
 
     document.getElementById('cEmpId').innerText = empId;
     document.getElementById('cEmpName').innerText = empName;
+    document.getElementById('cEmpEmail').innerText = empEmail || '-';
 
     modal.show();
     });

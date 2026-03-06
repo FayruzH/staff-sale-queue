@@ -13,6 +13,7 @@ class Registration extends Model
         'batch_id',
         'employee_identifier',
         'employee_name',
+        'employee_email',
         'queue_number',
         'checked_in_at',
         'checked_in_by',

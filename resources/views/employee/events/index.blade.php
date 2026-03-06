@@ -18,7 +18,7 @@
     }
 
     .events-page {
-      max-width: 980px;
+      max-width: 860px;
       margin-inline: auto;
       color: var(--ev-text);
     }
@@ -39,18 +39,18 @@
     }
 
     .events-head-title {
-      font-size: clamp(2rem, 5vw, 3.3rem);
-      line-height: 1;
+      font-size: clamp(1.6rem, 3.8vw, 2.5rem);
+      line-height: 1.05;
       letter-spacing: 0.02em;
       font-weight: 700;
-      margin: 0 0 0.35rem 0;
+      margin: 0 0 0.25rem 0;
       text-transform: uppercase;
     }
 
     .events-head-sub {
       color: var(--ev-muted);
       margin: 0;
-      font-size: 0.95rem;
+      font-size: 0.9rem;
     }
 
     .events-filter {
@@ -96,6 +96,7 @@
     .events-list {
       display: flex;
       flex-direction: column;
+      align-items: center;
       gap: 0.95rem;
     }
 
@@ -104,6 +105,9 @@
       border: 1px solid var(--ev-border);
       border-radius: 14px;
       overflow: hidden;
+      width: 100%;
+      max-width: 860px;
+      margin-inline: auto;
       transition: transform .2s ease, box-shadow .2s ease, border-color .2s ease;
     }
 
@@ -125,7 +129,7 @@
     }
 
     .event-card-body {
-      padding: 1.25rem;
+      padding: 1rem;
     }
 
     .event-head {
@@ -138,8 +142,8 @@
 
     .event-name {
       margin: 0;
-      margin-bottom: 1rem;
-      font-size: clamp(1.35rem, 2.8vw, 2rem);
+      margin-bottom: .65rem;
+      font-size: clamp(1.15rem, 2.2vw, 1.65rem);
       line-height: 1.1;
       letter-spacing: .02em;
       font-weight: 500;
@@ -159,10 +163,10 @@
       gap: 0.4rem;
       border: 1px solid var(--ev-border);
       border-radius: 9px;
-      padding: 0.34rem 0.68rem;
+      padding: 0.3rem 0.58rem;
       background: var(--ev-surface-soft);
       color: var(--ev-muted);
-      font-size: .86rem;
+      font-size: .8rem;
     }
 
     .status-pill {
@@ -174,7 +178,7 @@
       border: 1px solid rgba(5, 150, 105, 0.28);
       color: var(--ev-success);
       background: rgba(5, 150, 105, 0.1);
-      font-size: 0.76rem;
+      font-size: 0.7rem;
       font-weight: 600;
       letter-spacing: 0.08em;
       text-transform: uppercase;
@@ -221,8 +225,8 @@
       background: var(--ev-surface-soft);
       padding: .75rem .8rem;
       color: #4d6ca8;
-      font-size: 1.02rem;
-      line-height: 1.6;
+      font-size: .92rem;
+      line-height: 1.5;
     }
 
     .event-desc-text {
@@ -315,7 +319,7 @@
       }
 
       .event-name {
-        font-size: 1.9rem;
+        font-size: 1.45rem;
       }
 
       .event-meta {
@@ -351,9 +355,8 @@
 
   <div class="events-page">
     <div class="events-head">
-      <div class="events-head-label">Exclusive</div>
       <h1 class="events-head-title">Staff Sale Events</h1>
-      <p class="events-head-sub">Daftar batch sebelum kehabisan. Kuota terbatas.</p>
+      <p class="events-head-sub">Pilih event untuk lihat batch yang tersedia.</p>
     </div>
 
     @if(($totalEvents ?? $events->count()) > 3)
@@ -422,7 +425,7 @@
                 <span class="status-pill"><span class="status-dot"></span> Active</span>
               </div>
 
-              <div class="ratio mb-0" style="--bs-aspect-ratio: 37.5%;">
+              <div class="ratio mb-0" style="--bs-aspect-ratio: 30%;">
                 <div class="event-thumb-box">
                   @if($thumbUrl)
                     <img

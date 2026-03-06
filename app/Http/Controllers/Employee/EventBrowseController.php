@@ -3,11 +3,15 @@
 namespace App\Http\Controllers\Employee;
 
 use App\Http\Controllers\Controller;
+use App\Mail\EmployeeTicketMail;
 use App\Models\Batch;
 use App\Models\Event;
 use App\Models\Registration;
+use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Mail;
 
 class EventBrowseController extends Controller
 {
@@ -88,22 +92,51 @@ class EventBrowseController extends Controller
         $data = $request->validate([
             'employee_id'   => ['required', 'string', 'max:50'],
             'employee_name' => ['required', 'string', 'max:255'],
+            'employee_email' => ['required', 'email', 'max:255'],
         ]);
 
         $employeeId   = $data['employee_id'];
         $employeeName = $data['employee_name'];
+        $employeeEmail = !empty($data['employee_email'])
+            ? strtolower(trim((string) $data['employee_email']))
+            : null;
 
         session(['employee_id' => $employeeId]);
 
-        $result = DB::transaction(function () use ($event, $batch, $employeeId, $employeeName) {
-
-            $existing = Registration::where('event_id', $event->id)
+        $result = DB::transaction(function () use ($event, $batch, $employeeId, $employeeName, $employeeEmail) {
+            $existingRegs = Registration::where('event_id', $event->id)
                 ->where('employee_identifier', $employeeId)
+                ->with('batch:id,status,end_time')
                 ->lockForUpdate()
-                ->first();
+                ->get();
 
-            if ($existing) {
-                return ['type' => 'existing', 'registration' => $existing];
+            $now = now();
+            $activeReg = $existingRegs->first(function (Registration $reg) use ($event, $now) {
+                if (!is_null($reg->checked_in_at)) {
+                    return false;
+                }
+
+                if (!$reg->batch) {
+                    return true;
+                }
+
+                // Batch yang sudah selesai dianggap selesai (boleh register lagi).
+                if (in_array($reg->batch->status, ['completed', 'done'], true)) {
+                    return false;
+                }
+
+                if ($event->event_date && $reg->batch->end_time) {
+                    $batchEnd = Carbon::parse($event->event_date . ' ' . $reg->batch->end_time);
+                    if ($now->greaterThan($batchEnd)) {
+                        return false;
+                    }
+                }
+
+                return true;
+            });
+
+            if ($activeReg) {
+                return ['type' => 'existing_active', 'registration' => $activeReg];
             }
 
             $lockedBatch = Batch::where('id', $batch->id)
@@ -126,18 +159,21 @@ class EventBrowseController extends Controller
                 'batch_id'            => $lockedBatch->id,
                 'employee_identifier' => $employeeId,
                 'employee_name'       => $employeeName,
+                'employee_email'      => $employeeEmail,
                 'queue_number'        => $queueNumber,
             ]);
 
             return ['type' => 'new', 'registration' => $registration];
         });
 
-        if ($result['type'] === 'existing') {
+        if ($result['type'] === 'existing_active') {
             return redirect()
                 ->route('employee.events.show', $event)
                 ->with('already_registered', true)
-                ->with('already_registered_message', 'NIP / Employee ID ini sudah terdaftar. Silakan check your ticket.');
+                ->with('already_registered_message', 'Kamu masih punya ticket aktif di event ini. Selesaikan batch sebelumnya (selesai/absen) dulu sebelum register lagi.');
         }
+
+        $this->sendTicketNotifications($result['registration']);
 
         return redirect()
             ->route('employee.ticket', ['registration' => $result['registration']->id])
@@ -186,12 +222,14 @@ class EventBrowseController extends Controller
             'event_id'      => ['required', 'integer'], // ⛔ wajib
         ]);
 
-        $registration = Registration::where('event_id', $data['event_id'])
+        $registrations = Registration::where('event_id', $data['event_id'])
             ->where('employee_identifier', $data['employee_id'])
             ->whereRaw('LOWER(employee_name) = LOWER(?)', [$data['employee_name']])
-            ->first();
+            ->with(['event', 'batch'])
+            ->orderByDesc('id')
+            ->get();
 
-        if (!$registration) {
+        if ($registrations->isEmpty()) {
             return back()
                 ->withInput()
                 ->with('ticket_not_found', true)
@@ -201,7 +239,10 @@ class EventBrowseController extends Controller
                 ->with('ticket_not_found_event_id', $data['event_id']);
         }
 
-        $registration->loadMissing(['event', 'batch']);
+        // Jika ada lebih dari satu ticket, prioritaskan yang masih aktif.
+        $registration = $registrations->first(function (Registration $reg) {
+            return !$reg->isExpired();
+        }) ?? $registrations->first();
 
         if ($registration->isExpired()) {
             if ($registration->checked_in_at) {
@@ -222,6 +263,25 @@ class EventBrowseController extends Controller
         return redirect()
             ->route('employee.ticket', ['registration' => $registration->id])
             ->with('success', 'Login sukses. Ini tiket kamu.');
+    }
+
+    private function sendTicketNotifications(Registration $registration): void
+    {
+        $registration->loadMissing(['event', 'batch']);
+        $ticketUrl = route('employee.ticket', ['registration' => $registration->id]);
+
+        $targetEmail = $registration->employee_email;
+        if (!empty($targetEmail)) {
+            try {
+                Mail::to($targetEmail)->send(new EmployeeTicketMail($registration, $ticketUrl));
+            } catch (\Throwable $e) {
+                Log::warning('Failed to send ticket email.', [
+                    'registration_id' => $registration->id,
+                    'email' => $targetEmail,
+                    'error' => $e->getMessage(),
+                ]);
+            }
+        }
     }
 
 }
